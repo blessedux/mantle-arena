@@ -6,14 +6,6 @@ class GameScene extends Phaser.Scene {
     }
 
     preload() {
-        // Load game assets
-        this.load.image('tiles', 'assets/tileset.png');
-        this.load.tilemapTiledJSON('map', 'assets/map.json');
-        this.load.spritesheet('player', 'assets/player.png', { 
-            frameWidth: 32, 
-            frameHeight: 32 
-        });
-
         // Add loading text
         const loadingText = this.add.text(400, 300, 'Loading...', {
             fontSize: '32px',
@@ -24,29 +16,16 @@ class GameScene extends Phaser.Scene {
 
     create() {
         try {
-            // Create the tilemap
-            const map = this.make.tilemap({ key: 'map' });
-            const tileset = map.addTilesetImage('tileset', 'tiles');
-            
-            if (!tileset) {
-                console.error('Failed to load tileset');
-                return;
-            }
+            // Create a simple background
+            this.add.rectangle(0, 0, 1600, 1200, 0x1a1a1a).setOrigin(0, 0);
 
-            const layer = map.createLayer('Tile Layer 1', tileset, 0, 0);
-            
-            if (!layer) {
-                console.error('Failed to create map layer');
-                return;
-            }
-
-            // Create player sprite
-            this.player = this.physics.add.sprite(400, 300, 'player', 0);
+            // Create player (temporary rectangle)
+            this.player = this.physics.add.rectangle(400, 300, 32, 32, 0x00ff00);
             this.player.setCollideWorldBounds(true);
 
             // Set up camera to follow player
             this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-            this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+            this.cameras.main.setBounds(0, 0, 1600, 1200);
 
             // Set up keyboard input
             this.cursors = this.input.keyboard.createCursorKeys();
@@ -63,6 +42,22 @@ class GameScene extends Phaser.Scene {
                 fill: '#fff'
             });
             this.debugText.setScrollFactor(0);
+
+            // Add player position text
+            this.positionText = this.add.text(16, 40, '', {
+                fontSize: '18px',
+                fill: '#fff'
+            });
+            this.positionText.setScrollFactor(0);
+
+            // Add some decorative elements
+            for (let i = 0; i < 50; i++) {
+                const x = Phaser.Math.Between(0, 1600);
+                const y = Phaser.Math.Between(0, 1200);
+                const size = Phaser.Math.Between(2, 4);
+                this.add.circle(x, y, size, 0xffffff, 0.5);
+            }
+
         } catch (error) {
             console.error('Error in create:', error);
             this.add.text(400, 300, 'Error loading game', {
@@ -81,18 +76,32 @@ class GameScene extends Phaser.Scene {
         // Handle movement
         const speed = 150;
         
-        // Arrow keys
-        if (this.cursors.left.isDown || this.wasd.left.isDown) {
+        // Get input state
+        const left = this.cursors.left.isDown || this.wasd.left.isDown;
+        const right = this.cursors.right.isDown || this.wasd.right.isDown;
+        const up = this.cursors.up.isDown || this.wasd.up.isDown;
+        const down = this.cursors.down.isDown || this.wasd.down.isDown;
+
+        // Handle diagonal movement
+        if (left) {
             this.player.setVelocityX(-speed);
-        } else if (this.cursors.right.isDown || this.wasd.right.isDown) {
+        } else if (right) {
             this.player.setVelocityX(speed);
         }
 
-        if (this.cursors.up.isDown || this.wasd.up.isDown) {
+        if (up) {
             this.player.setVelocityY(-speed);
-        } else if (this.cursors.down.isDown || this.wasd.down.isDown) {
+        } else if (down) {
             this.player.setVelocityY(speed);
         }
+
+        // Normalize diagonal movement
+        if (this.player.body.velocity.x !== 0 && this.player.body.velocity.y !== 0) {
+            this.player.body.velocity.normalize().scale(speed);
+        }
+
+        // Update position text
+        this.positionText.setText(`Position: ${Math.floor(this.player.x)}, ${Math.floor(this.player.y)}`);
     }
 }
 
